@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import vk
+import os
+import sys,getopt
+from time import localtime, strftime
+from random import randint
+from time import sleep
+import webbrowser
+####
+#secret = YOUR_SECRET
+#http://oauth.vk.com/authorize?client_id='+APP_ID+'&scope='+SETTINGS+'&redirect_uri='+REDIRECT_URI+'&display='+DISPLAY+'&response_type=token'
+####
+access_token="YOUR_ACCES_TOKEN"
+def auth():
+	app_id = 'YOUR_APP_ID'
+	REDIRECT_URI = ''
+	DISPLAY = 'page'
+	SETTINGS="messages,offline"
+	webbrowser.open('http://oauth.vk.com/authorize?client_id='+app_id+'&scope='+SETTINGS+'&redirect_uri='+REDIRECT_URI+'&display='+DISPLAY+'&response_type=token')
+
+def sendmessage(title,message,icon=False):
+	if icon == False:
+		icon = 'vk.png'
+	else: 
+		icon = icon
+	notify = '"'+title+'" "'+message+'" '+'-i '+icon
+	os.system('notify-send '+notify)
+	return
+def getTxTmsg():
+	msg = ""
+	f = open("vk.txt","r")
+	lines = f.readlines()
+	f.close()
+
+	totalLines = len(lines)
+	currenttime = strftime("%Y-%m-%d %H:%M:%S", localtime())
+
+	if totalLines != 0:
+		f = open("vk.txt","w")
+		for line in lines:
+			if line != "" and line != '\n': 
+				if line != lines[0]:
+					f.write(line)
+				else:
+					msg = line
+		f.close()
+		f = open("vk_del.txt","a")
+		f.write("["+currenttime+"]: "+msg+'\n')
+		f.close()
+	return msg
+def pushToVk(userID):
+	global access_token
+	session = vk.Session(access_token=access_token)
+	vkapi = vk.API(session)
+	msg = getTxTmsg()
+	message_recive = vkapi.messages.get(count=1)
+	if message_recive[1]["read_state"] == 0: 
+		sendmessage('VK Auto Sender - New MSG',message_recive[1]["body"].encode('utf-8'),'newmsg.png')
+	if msg != "":
+		repsonse = vkapi.messages.send(user_id=userID,message=msg)
+		if repsonse>0:
+			sendmessage('VK Auto Sender','Message: ['+msg+'] successful send to vk!')
+def main(argv):
+	try:
+		opts, args = getopt.getopt(argv, "ht", ["help","time="])
+		for opt, arg in opts:
+			if opt in ("-h", "--help"):
+				print("vk auto messanger v 1.0 Vladislav Rogovsky")
+				sys.exit()
+			elif opt in ("-t", "--time"):
+				if args:
+					time = args
+					time[0]=int(time[0])*60
+					time[1]=int(time[1])*60
+					print("start from: {} minutes to: {} minutes".format(time[0]/60,time[1]/60))
+					while True:
+						pushToVk(55078474)
+						sleep(randint(time[0],time[1]))
+					pass
+		if (opts==[]):
+			print ("All set to default")
+			print ("Starting with time: from 5 to 10 minutes")
+			while True:
+				pushToVk(55078474)
+				sleep(randint(300,600))
+			pass
+			pass
+	except getopt.GetoptError:
+			print ("No such paramet, all set to default")
+			print ("starting with time: from 5 to 10 minutes")
+			while True:
+				pushToVk(55078474)
+				sleep(randint(300,600))
+			pass
+
+
+main(sys.argv[1:])
